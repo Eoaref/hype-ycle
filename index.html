@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Tech Archeology Lab: Hype & S-Curve Simulator</title>
+    <style>
+        :root {
+            --slate-900: #0f172a;
+            --slate-700: #334155;
+            --blue-600: #2563eb;
+            --emerald-600: #16a34a;
+            --amber-600: #d97706;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--background);
+            color: var(--slate-900);
+            line-height: 1.5;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .dashboard {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 25px;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .full-width { grid-column: 1 / -1; }
+        
+        header h1 { margin: 0 0 5px 0; font-size: 24px; color: var(--slate-900); }
+        header p { margin: 0; color: var(--slate-700); font-size: 14px; }
+
+        .canvas-container {
+            position: relative;
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+
+        canvas {
+            width: 100%;
+            height: 320px;
+            display: block;
+        }
+
+        .slider-group {
+            margin-bottom: 20px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--blue-600);
+            cursor: pointer;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--blue-600);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 15px;
+            text-align: center;
+        }
+
+        .btn:hover { background: #1d4ed8; }
+        .btn-secondary { background: #64748b; margin-top: 10px;}
+        .btn-secondary:hover { background: #475569; }
+
+        .alert-box {
+            background: #eff6ff;
+            border-left: 4px solid var(--blue-600);
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .case-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .case-tab {
+            flex: 1;
+            padding: 10px;
+            background: #f1f5f9;
+            border: 1px solid var(--border);
+            text-align: center;
+            font-weight: 600;
+            font-size: 13px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .case-tab.active {
+            background: var(--slate-900);
+            color: white;
+            border-color: var(--slate-900);
+        }
+
+        .reveal-box {
+            animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            background: #f0fdf4;
+            border: 2px solid var(--emerald-600);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+    <header class="panel full-width">
+        <h1>The Tech Archeology Lab</h1>
+        <p>Analyze blind datasets, simulate inputs to test system stability, and match indicators to historical innovation lifecycles.</p>
+    </header>
+
+    <div class="panel">
+        <div class="case-selector">
+            <div class="case-tab active" id="tab0" onclick="switchCase(0)">Dataset Alpha</div>
+            <div class="case-tab" id="tab1" onclick="switchCase(1)">Dataset Beta</div>
+            <div class="case-tab" id="tab2" onclick="switchCase(2)">Dataset Gamma</div>
+        </div>
+
+        <div class="alert-box">
+            <strong>System Telemetry:</strong> <span id="case-desc">Loading dataset metrics...</span>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="lifecycleChart"></canvas>
+        </div>
+        <p style="font-size: 12px; color: #64748b; text-align: center; margin: 0;">
+            Solid Line = Hype Trajectory (Expectations) | Dashed Line = $S$-Curve Trajectory (Proven Adoption / Maturity)
+        </p>
+    </div>
+
+    <div class="panel" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <h2>Simulation Controls</h2>
+            <p style="font-size: 13px; color: #475569; margin-bottom: 20px;">
+                Manipulate management inputs to simulate how capital shifts the technology's adoption lifecycle ($S$-curve slope) vs. market media hype.
+            </p>
+
+            <div class="slider-group">
+                <div class="slider-label"><span>R&D Capital Expansion</span><span id="val-rd">1.0x</span></div>
+                <input type="range" id="slider-rd" min="0.5" max="2.0" step="0.1" value="1.0" oninput="runSimulation()">
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-label"><span>Workforce Transition Spend</span><span id="val-train">1.0x</span></div>
+                <input type="range" id="slider-train" min="0.5" max="2.0" step="0.1" value="1.0" oninput="runSimulation()">
+            </div>
+
+            <div class="slider-group">
+                <div class="slider-label"><span>Market Deployment Timing</span><span id="val-time">Year 2</span></div>
+                <input type="range" id="slider-time" min="1" max="5" step="1" value="2" oninput="runSimulation()">
+            </div>
+
+            <div style="border-top: 1px solid var(--border); margin: 20px 0; padding-top: 15px;">
+                <h3>Your Strategic Commitment</h3>
+                <p style="font-size: 13px; color: #475569;">Based on the data profile, select your implementation vector:</p>
+                <select id="strategy-select" style="width:100%; padding: 10px; border-radius:6px; border:1px solid var(--border); font-size:14px;">
+                    <option value="early">Pioneer: Scale up infrastructure immediately at Year 1</option>
+                    <option value="middle">Pragmatist: Deploy incrementally during the Trough (Year 3)</option>
+                    <option value="late">Conservative: Wait for mature standards at Year 5</option>
+                </select>
+            </div>
+        </div>
+
+        <div>
+            <button class="btn" onclick="evaluateDecision()">Execute & Declassify Dataset</button>
+            <button class="btn btn-secondary" onclick="resetSim()">Reset Parameters</button>
+        </div>
+    </div>
+
+    <div class="panel full-width" id="reveal-container" style="display: none;">
+        </div>
+</div>
+
+<script>
+    const datasets = [
+        {
+            desc: "Internal process automation technology framework. Features clear infrastructure dependencies, structural process displacement, and linear cost savings trajectories.",
+            techName: "Autonomous AGVs & Warehouse Carts",
+            realCategory: "sustaining",
+            bestStrat: "middle",
+            analysis: "This profile tracks sustaining logistics robotics. Early scaling (Year 1) typically fails due to custom physical floor-plan dependencies. Waiting until Year 5 causes market lag. Deploying incrementally at Year 3 during standard stabilization produces the optimized historical ROI footprint."
+        },
+        {
+            desc: "Consumer-facing mobile interface standard. Features massive exponential network effects, high initial consumer feature-hype, and immediate disruptive capabilities across legacy markets.",
+            techName: "The Early Smartphone Wave (BlackBerry to iPhone Evolution)",
+            realCategory: "disruptive",
+            bestStrat: "early",
+            analysis: "A classic disruptive product lifecycle. Because consumer network effects scale exponentially, entering early as a pioneer secured market dominance. Waiting until standard consolidation (Year 5) resulted in absolute loss of ecosystem market footprint."
+        },
+        {
+            desc: "Highly volatile infrastructure shift. Extreme social expectations matching heavy technical and sensory limitations. Pushed heavily by vendor funding; extreme liability vectors present.",
+            techName: "Level 5 Autonomous Driving Vehicles",
+            realCategory: "highly volatile",
+            bestStrat: "late",
+            analysis: "This profile tracks high-autonomy consumer vehicles. The technology encounters severe 'long-tail' technical limitations. Early implementation results in high legal exposure and capital depletion. A conservative strategy (waiting for strict data and standard maturity) is the historical, risk-adjusted winner."
+        }
+    ];
+
+    let currentCaseIdx = 0;
+    const canvas = document.getElementById('lifecycleChart');
+    const ctx = canvas.getContext('2d');
+
+    function initCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = canvas.parentElement.clientWidth * dpr;
+        canvas.height = 320 * dpr;
+        ctx.scale(dpr, dpr);
+    }
+
+    function switchCase(idx) {
+        currentCaseIdx = idx;
+        for(let i=0; i<3; i++) {
+            document.getElementById(`tab${i}`).classList.toggle('active', i === idx);
+        }
+        document.getElementById('reveal-container').style.display = 'none';
+        resetSim();
+    }
+
+    function resetSim() {
+        document.getElementById('slider-rd').value = 1.0;
+        document.getElementById('slider-train').value = 1.0;
+        document.getElementById('slider-time').value = 2;
+        document.getElementById('strategy-select').value = 'early';
+        document.getElementById('reveal-container').style.display = 'none';
+        runSimulation();
+    }
+
+    function runSimulation() {
+        const rd = parseFloat(document.getElementById('slider-rd').value);
+        const train = parseFloat(document.getElementById('slider-train').value);
+        const time = parseInt(document.getElementById('slider-time').value);
+
+        document.getElementById('val-rd').innerText = rd + 'x';
+        document.getElementById('val-train').innerText = train + 'x';
+        document.getElementById('val-time').innerText = 'Year ' + time;
+
+        document.getElementById('case-desc').innerText = datasets[currentCaseIdx].desc;
+
+        drawGraph(rd, train, time);
+    }
+
+    function drawGraph(rd, train, time) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const w = canvas.width / (window.devicePixelRatio || 1);
+        const h = 320;
+        const padding = 40;
+
+        // Draw Axes
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(padding, padding);
+        ctx.lineTo(padding, h - padding);
+        ctx.lineTo(w - padding, h - padding);
+        ctx.stroke();
+
+        // X-Axis Labels (Time)
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '11px sans-serif';
+        ctx.textAlign = 'center';
+        for(let i = 1; i <= 5; i++) {
+            let x = padding + ((w - padding * 2) / 4) * (i - 1);
+            ctx.fillText('Yr ' + i, x, h - padding + 18);
+        }
+
+        // Generate Hype Cycle Path (Expectations Curve)
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.strokeStyle = '#2563eb'; // Blue Line
+        
+        for (let xCoord = padding; xCoord <= w - padding; xCoord++) {
+            let pct = (xCoord - padding) / (w - padding * 2);
+            let yVal;
+            
+            // Core mathematical baseline for Hype Cycle
+            if (pct < 0.25) { // Peak
+                yVal = Math.sin((pct / 0.25) * (Math.PI / 2)) * (h * 0.75);
+            } else if (pct < 0.55) { // Trough
+                let tPct = (pct - 0.25) / 0.30;
+                yVal = (h * 0.75) - (tPct * (h * 0.55));
+            } else { // Slope of enlightenment
+                let sPct = (pct - 0.55) / 0.45;
+                yVal = (h * 0.20) + (sPct * (h * 0.25));
+            }
+
+            // Manipulate expectations
