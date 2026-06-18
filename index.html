@@ -51,17 +51,19 @@
         header p { margin: 0; color: var(--slate-700); font-size: 14px; }
 
         .canvas-container {
-            position: relative;
             background: #1e293b;
             border-radius: 8px;
-            padding: 10px;
+            padding: 15px;
             margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
         }
 
         canvas {
-            width: 100%;
-            height: 320px;
+            background: #1e293b;
             display: block;
+            max-width: 100%;
+            height: auto;
         }
 
         .slider-group {
@@ -134,17 +136,11 @@
         }
 
         .reveal-box {
-            animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
             background: #f0fdf4;
             border: 2px solid var(--emerald-600);
             padding: 20px;
             border-radius: 8px;
             margin-top: 15px;
-        }
-
-        @keyframes popIn {
-            from { transform: scale(0.95); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
         }
     </style>
 </head>
@@ -168,10 +164,10 @@
         </div>
 
         <div class="canvas-container">
-            <canvas id="lifecycleChart"></canvas>
+            <canvas id="lifecycleChart" width="650" height="320"></canvas>
         </div>
         <p style="font-size: 12px; color: #64748b; text-align: center; margin: 0;">
-            Solid Line = Hype Trajectory (Expectations) | Dashed Line = $S$-Curve Trajectory (Proven Adoption / Maturity)
+            Blue Line = Hype Trajectory (Expectations) | Green Line = S-Curve Trajectory (Proven Adoption / Maturity)
         </p>
     </div>
 
@@ -214,8 +210,7 @@
         </div>
     </div>
 
-    <div class="panel full-width" id="reveal-container" style="display: none;">
-        </div>
+    <div class="panel full-width" id="reveal-container" style="display: none;"></div>
 </div>
 
 <script>
@@ -223,36 +218,32 @@
         {
             desc: "Internal process automation technology framework. Features clear infrastructure dependencies, structural process displacement, and linear cost savings trajectories.",
             techName: "Autonomous AGVs & Warehouse Carts",
-            realCategory: "sustaining",
             bestStrat: "middle",
             analysis: "This profile tracks sustaining logistics robotics. Early scaling (Year 1) typically fails due to custom physical floor-plan dependencies. Waiting until Year 5 causes market lag. Deploying incrementally at Year 3 during standard stabilization produces the optimized historical ROI footprint."
         },
         {
             desc: "Consumer-facing mobile interface standard. Features massive exponential network effects, high initial consumer feature-hype, and immediate disruptive capabilities across legacy markets.",
             techName: "The Early Smartphone Wave (BlackBerry to iPhone Evolution)",
-            realCategory: "disruptive",
             bestStrat: "early",
             analysis: "A classic disruptive product lifecycle. Because consumer network effects scale exponentially, entering early as a pioneer secured market dominance. Waiting until standard consolidation (Year 5) resulted in absolute loss of ecosystem market footprint."
         },
         {
             desc: "Highly volatile infrastructure shift. Extreme social expectations matching heavy technical and sensory limitations. Pushed heavily by vendor funding; extreme liability vectors present.",
             techName: "Level 5 Autonomous Driving Vehicles",
-            realCategory: "highly volatile",
             bestStrat: "late",
             analysis: "This profile tracks high-autonomy consumer vehicles. The technology encounters severe 'long-tail' technical limitations. Early implementation results in high legal exposure and capital depletion. A conservative strategy (waiting for strict data and standard maturity) is the historical, risk-adjusted winner."
         }
     ];
 
     let currentCaseIdx = 0;
-    const canvas = document.getElementById('lifecycleChart');
-    const ctx = canvas.getContext('2d');
+    let canvas, ctx;
 
-    function initCanvas() {
-        const dpr = window.devicePixelRatio || 1;
-        canvas.width = canvas.parentElement.clientWidth * dpr;
-        canvas.height = 320 * dpr;
-        ctx.scale(dpr, dpr);
-    }
+    // Strict browser-load protection sequence
+    window.addEventListener('DOMContentLoaded', () => {
+        canvas = document.getElementById('lifecycleChart');
+        ctx = canvas.getContext('2d');
+        runSimulation();
+    });
 
     function switchCase(idx) {
         currentCaseIdx = idx;
@@ -273,6 +264,8 @@
     }
 
     function runSimulation() {
+        if (!ctx) return; // Fail-safe check
+
         const rd = parseFloat(document.getElementById('slider-rd').value);
         const train = parseFloat(document.getElementById('slider-train').value);
         const time = parseInt(document.getElementById('slider-time').value);
@@ -280,55 +273,122 @@
         document.getElementById('val-rd').innerText = rd + 'x';
         document.getElementById('val-train').innerText = train + 'x';
         document.getElementById('val-time').innerText = 'Year ' + time;
-
         document.getElementById('case-desc').innerText = datasets[currentCaseIdx].desc;
 
         drawGraph(rd, train, time);
     }
 
     function drawGraph(rd, train, time) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        const w = canvas.width / (window.devicePixelRatio || 1);
+        const w = 650;
         const h = 320;
-        const padding = 40;
+        const padding = 50;
 
-        // Draw Axes
-        ctx.strokeStyle = '#64748b';
-        ctx.lineWidth = 1.5;
+        ctx.clearRect(0, 0, w, h);
+        
+        // Draw Chart Grid/Axes Background
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(padding, padding);
         ctx.lineTo(padding, h - padding);
         ctx.lineTo(w - padding, h - padding);
         ctx.stroke();
 
-        // X-Axis Labels (Time)
+        // X-Axis Labels (Timeline Points)
         ctx.fillStyle = '#94a3b8';
-        ctx.font = '11px sans-serif';
+        ctx.font = 'bold 11px sans-serif';
         ctx.textAlign = 'center';
         for(let i = 1; i <= 5; i++) {
             let x = padding + ((w - padding * 2) / 4) * (i - 1);
-            ctx.fillText('Yr ' + i, x, h - padding + 18);
+            ctx.fillText('Year ' + i, x, h - padding + 20);
         }
 
-        // Generate Hype Cycle Path (Expectations Curve)
+        // Draw Blue Hype Cycle Curve
         ctx.lineWidth = 3;
+        ctx.strokeStyle = '#2563eb';
         ctx.beginPath();
-        ctx.strokeStyle = '#2563eb'; // Blue Line
         
         for (let xCoord = padding; xCoord <= w - padding; xCoord++) {
             let pct = (xCoord - padding) / (w - padding * 2);
             let yVal;
             
-            // Core mathematical baseline for Hype Cycle
-            if (pct < 0.25) { // Peak
-                yVal = Math.sin((pct / 0.25) * (Math.PI / 2)) * (h * 0.75);
-            } else if (pct < 0.55) { // Trough
+            if (pct < 0.25) { 
+                yVal = Math.sin((pct / 0.25) * (Math.PI / 2)) * (h * 0.70);
+            } else if (pct < 0.55) { 
                 let tPct = (pct - 0.25) / 0.30;
-                yVal = (h * 0.75) - (tPct * (h * 0.55));
-            } else { // Slope of enlightenment
+                yVal = (h * 0.70) - (tPct * (h * 0.50));
+            } else { 
                 let sPct = (pct - 0.55) / 0.45;
                 yVal = (h * 0.20) + (sPct * (h * 0.25));
             }
 
-            // Manipulate expectations
+            let finalY = (h - padding) - (yVal * (0.8 + (rd * 0.2)));
+            if (xCoord === padding) ctx.moveTo(xCoord, finalY);
+            else ctx.lineTo(xCoord, finalY);
+        }
+        ctx.stroke();
+
+        // Draw Green S-Curve Curve
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#16a34a';
+        ctx.beginPath();
+
+        let startShift = (time - 1) * 0.15; 
+
+        for (let xCoord = padding; xCoord <= w - padding; xCoord++) {
+            let pct = (xCoord - padding) / (w - padding * 2);
+            let k = 10 * (0.5 + (train * 0.5)); 
+            let midPoint = 0.5 + startShift;
+            let sVal = 1 / (1 + Math.exp(-k * (pct - midPoint)));
+            
+            let finalY = (h - padding) - (sVal * (h * 0.65));
+            if (xCoord === padding) ctx.moveTo(xCoord, finalY);
+            else ctx.lineTo(xCoord, finalY);
+        }
+        ctx.stroke();
+    }
+
+    function evaluateDecision() {
+        const choice = document.getElementById('strategy-select').value;
+        const currentCase = datasets[currentCaseIdx];
+        const revealContainer = document.getElementById('reveal-container');
+
+        let score = 0;
+        let rating = "";
+        let feedbackColor = "";
+
+        if (choice === currentCase.bestStrat) {
+            score = 100;
+            rating = "Exceptional Strategic Accuracy";
+            feedbackColor = "var(--emerald-600)";
+        } else if (
+            (choice === "early" && currentCase.bestStrat === "middle") ||
+            (choice === "middle" && currentCase.bestStrat === "late")
+        ) {
+            score = 65;
+            rating = "Sub-Optimal Entry Timing (Moderate Friction)";
+            feedbackColor = "var(--amber-600)";
+        } else {
+            score = 30;
+            rating = "Critical Structural Alignment Failure";
+            feedbackColor = "var(--danger)";
+        }
+
+        revealContainer.style.display = "block";
+        revealContainer.innerHTML = `
+            <div class="reveal-box" style="border-color: ${feedbackColor};">
+                <h2 style="margin-top:0; color: var(--slate-900);">Declassified Innovation: <span style="color:var(--blue-600);">${currentCase.techName}</span></h2>
+                <div style="font-size: 18px; font-weight: bold; color: ${feedbackColor}; margin-bottom: 10px;">
+                    Strategic Alignment Score: ${score}/100 — ${rating}
+                </div>
+                <p style="font-size: 14px; color: var(--slate-700); background: white; padding: 15px; border-radius: 6px; border: 1px solid var(--border);">
+                    <strong>Historical Case Review:</strong> ${currentCase.analysis}
+                </p>
+            </div>
+        `;
+        revealContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>
